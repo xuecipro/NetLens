@@ -121,14 +121,8 @@ class WifiRepository(private val context: Context) {
             runCatching { info.rxLinkSpeedMbps }.getOrNull()?.takeIf { it > 0 }
         } else null
 
-        val width = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            runCatching {
-                when (info.channelWidth) {
-                    0 -> 20; 1 -> 40; 2 -> 80; 3 -> 160; 4 -> 80; 5 -> 160; 6 -> 320
-                    else -> null
-                }
-            }.getOrNull()
-        } else null
+        // Channel width is more reliably read from ScanResult than WifiInfo across APIs.
+        val width = scanChannelWidth(bssid)
 
         return CurrentConnection(
             ssid = ssid,
@@ -158,6 +152,26 @@ class WifiRepository(private val context: Context) {
             null
         }
         return SecurityParser.parse(hit?.capabilities ?: "")
+    }
+
+    private fun scanChannelWidth(bssid: String): Int? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return null
+        return try {
+            @Suppress("DEPRECATION")
+            val hit = wifiManager.scanResults.firstOrNull { it.BSSID.equals(bssid, true) } ?: return null
+            when (hit.channelWidth) {
+                0 -> 20
+                1 -> 40
+                2 -> 80
+                3 -> 160
+                4 -> 80
+                5 -> 160
+                6 -> 320
+                else -> null
+            }
+        } catch (_: Exception) {
+            null
+        }
     }
 
     fun localIpAddress(): String {

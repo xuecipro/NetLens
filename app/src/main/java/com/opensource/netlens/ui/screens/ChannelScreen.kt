@@ -37,8 +37,8 @@ import com.opensource.netlens.data.model.Band
 import com.opensource.netlens.data.model.ChannelRating
 import com.opensource.netlens.data.model.WifiNetwork
 import com.opensource.netlens.data.model.signalColor
+import com.opensource.netlens.data.model.SignalLabels
 import com.opensource.netlens.ui.MainViewModel
-import com.opensource.netlens.util.SignalLabels
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

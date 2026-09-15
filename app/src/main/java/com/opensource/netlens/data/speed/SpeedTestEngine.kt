@@ -10,8 +10,6 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
-import kotlin.math.max
-import kotlin.math.min
 import kotlin.math.sqrt
 
 class PingEngine {
@@ -276,6 +274,6 @@ object JitterUtil {
         return sqrt(varr)
     }
 
-    fun min(a: Double, b: Double) = min(a, b)
-    fun max(a: Double, b: Double) = max(a, b)
+    fun minOf2(a: Double, b: Double): Double = if (a < b) a else b
+    fun maxOf2(a: Double, b: Double): Double = if (a > b) a else b
 }
