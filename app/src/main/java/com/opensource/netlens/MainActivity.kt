@@ -135,6 +135,8 @@ fun NetLensAppRoot(vm: MainViewModel, onNeedPermissions: () -> Unit) {
                     vm = vm,
                     onOpenSettings = { navController.navigate("settings") },
                     onOpenSpeed = { navController.navigate("speed") },
+                    onOpenDevices = { navController.navigate("devices") },
+                    onOpenAdvice = { navController.navigate("advice") },
                     onNeedPermissions = onNeedPermissions
                 )
             }
@@ -142,7 +144,13 @@ fun NetLensAppRoot(vm: MainViewModel, onNeedPermissions: () -> Unit) {
             composable("channel") { ChannelScreen(vm = vm) }
             composable("devices") { DevicesScreen(vm = vm) }
             composable("speed") { SpeedTestScreen(vm = vm) }
-            composable("advice") { AdvisorScreen(vm = vm) }
+            composable("advice") {
+                AdvisorScreen(
+                    vm = vm,
+                    onNavigateToSpeed = { navController.navigate("speed") },
+                    onNavigateToDevices = { navController.navigate("devices") }
+                )
+            }
             composable("settings") { SettingsScreen(vm = vm) }
         }
     }

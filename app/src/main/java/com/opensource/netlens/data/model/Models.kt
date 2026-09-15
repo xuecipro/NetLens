@@ -109,13 +109,32 @@ data class SpeedResult(
 
 enum class AdviceSeverity { HIGH, MEDIUM, LOW, OK }
 
+/** In-app actions the user can run from an advice card. */
+enum class AdviceAction {
+    NONE,
+    SWITCH_TO_5GHZ,
+    OPEN_ROUTER_ADMIN,
+    OPEN_WIFI_SETTINGS,
+    OPEN_LOCATION_SETTINGS,
+    RUN_SPEED_TEST,
+    RUN_DEVICE_SCAN,
+    COPY_CHANNEL_GUIDE,
+    OPEN_WIRELESS_SETTINGS
+}
+
 data class AdviceItem(
     val severity: AdviceSeverity,
     val titleZh: String,
     val titleEn: String,
     val detailZh: String,
     val detailEn: String,
-    val category: String
+    val category: String,
+    val action: AdviceAction = AdviceAction.NONE,
+    val actionLabelZh: String = "",
+    val actionLabelEn: String = "",
+    val actionParam: String? = null,
+    val targetBssid: String? = null,
+    val targetSsid: String? = null
 )
 
 data class ChannelRating(

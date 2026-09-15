@@ -41,7 +41,16 @@ fun DevicesScreen(vm: MainViewModel) {
 
     Column(Modifier.fillMaxSize()) {
         TopAppBar(
-            title = { Text(stringResource(R.string.devices_title), fontWeight = FontWeight.Bold) },
+            title = {
+                Column {
+                    Text(stringResource(R.string.devices_title), fontWeight = FontWeight.ExtraBold)
+                    Text(
+                        stringResource(R.string.devices_found, state.devices.size),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
             actions = {
                 IconButton(onClick = { vm.scanDevices() }, enabled = !state.isScanningDevices) {
                     Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.action_scan))

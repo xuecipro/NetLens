@@ -49,7 +49,19 @@ fun ChannelScreen(vm: MainViewModel) {
     val inBand = state.networks.filter { it.band == band && it.channel > 0 }
 
     Column(Modifier.fillMaxSize()) {
-        TopAppBar(title = { Text(stringResource(R.string.channel_title), fontWeight = FontWeight.Bold) })
+        TopAppBar(
+            title = {
+                Column {
+                    Text(stringResource(R.string.channel_title), fontWeight = FontWeight.ExtraBold)
+                    Text(
+                        stringResource(R.string.channel_overlap_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1
+                    )
+                }
+            }
+        )
         Column(Modifier.padding(horizontal = 16.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(selected = band == Band.BAND_24, onClick = { band = Band.BAND_24 }, label = {

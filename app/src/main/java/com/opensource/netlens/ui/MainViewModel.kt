@@ -3,8 +3,10 @@ package com.opensource.netlens.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.opensource.netlens.data.action.NetworkActionExecutor
 import com.opensource.netlens.data.advisor.NetworkAdvisor
 import com.opensource.netlens.data.devices.DeviceScanner
+import com.opensource.netlens.data.model.AdviceAction
 import com.opensource.netlens.data.model.AdviceItem
 import com.opensource.netlens.data.model.Band
 import com.opensource.netlens.data.model.ChannelRating
@@ -40,7 +42,8 @@ data class UiState(
     val statusMessage: String = "",
     val selectedBand: Band? = null,
     val scanIntervalMs: Long = 3000L,
-    val themeMode: String = "system"
+    val themeMode: String = "system",
+    val actionMessage: String? = null
 )
 
 class MainViewModel(app: Application) : AndroidViewModel(app) {
@@ -49,6 +52,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val deviceScanner = DeviceScanner(app)
     private val pingEngine = PingEngine()
     private val speedEngine = SpeedTestEngine()
+    private val actionExecutor = NetworkActionExecutor(app)
 
     private val prefs = app.getSharedPreferences("netlens_prefs", android.content.Context.MODE_PRIVATE)
 
@@ -212,6 +216,81 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             ping = s.ping
         )
         _state.update { it.copy(advice = advice) }
+    }
+
+    fun clearActionMessage() {
+        _state.update { it.copy(actionMessage = null) }
+    }
+
+    /**
+     * Run an executable optimization strategy from an advice card.
+     * @param onNavigateToSpeed optional callback when the action is "run speed test"
+     * @param onNavigateToDevices optional callback when the action is "scan devices"
+     */
+    fun executeAdvice(
+        advice: AdviceItem,
+        onNavigateToSpeed: () -> Unit = {},
+        onNavigateToDevices: () -> Unit = {}
+    ) {
+        val s = _state.value
+        when (advice.action) {
+            AdviceAction.RUN_SPEED_TEST -> {
+                onNavigateToSpeed()
+                runSpeedTest()
+                _state.update { it.copy(actionMessage = "已开始测速 / Speed test started") }
+            }
+            AdviceAction.RUN_DEVICE_SCAN -> {
+                onNavigateToDevices()
+                scanDevices()
+                _state.update { it.copy(actionMessage = "正在扫描局域网 / Scanning LAN…") }
+            }
+            else -> {
+                val result = actionExecutor.execute(
+                    action = advice.action,
+                    networks = s.networks,
+                    currentSsid = s.connection?.ssid,
+                    currentBand = s.connection?.band,
+                    param = advice.actionParam ?: s.connection?.gateway,
+                    targetBssid = advice.targetBssid,
+                    targetSsid = advice.targetSsid
+                )
+                when (result) {
+                    is NetworkActionExecutor.ActionResult.Success -> {
+                        val msg = if (java.util.Locale.getDefault().language.startsWith("zh"))
+                            result.messageZh else result.messageEn
+                        _state.update { it.copy(actionMessage = msg) }
+                        actionExecutor.toast(msg)
+                        // Refresh so the user sees post-action state
+                        viewModelScope.launch {
+                            kotlinx.coroutines.delay(1200)
+                            refreshWifi()
+                        }
+                    }
+                    is NetworkActionExecutor.ActionResult.Navigation -> {
+                        runCatching {
+                            getApplication<Application>().startActivity(result.intent)
+                        }.onFailure {
+                            _state.update {
+                                it.copy(actionMessage = "无法打开系统页面 / Cannot open settings")
+                            }
+                        }
+                        _state.update {
+                            it.copy(actionMessage = "已打开系统设置 / Opened system settings")
+                        }
+                    }
+                    is NetworkActionExecutor.ActionResult.Error -> {
+                        val msg = if (java.util.Locale.getDefault().language.startsWith("zh"))
+                            result.messageZh else result.messageEn
+                        _state.update { it.copy(actionMessage = msg) }
+                        actionExecutor.toast(msg)
+                    }
+                    is NetworkActionExecutor.ActionResult.NeedsPermission -> {
+                        _state.update { it.copy(actionMessage = "需要相关权限 / Permission required") }
+                    }
+                }
+            }
+        }
+        rebuildAdvice()
     }
 
     fun setScanInterval(ms: Long) {
