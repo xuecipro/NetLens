@@ -1,0 +1,4 @@
+## Local SDK path for Android Studio / local builds.
+## Copy to local.properties and set your SDK path.
+## local.properties is gitignored.
+sdk.dir=C\:\\Users\\YOUR_USER\\AppData\\Local\\Android\\Sdk

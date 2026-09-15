@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NetLens</string>
+    <string name="app_tagline">网络分析 · 测速 · 优化</string>
+
+    <!-- Bottom navigation -->
+    <string name="nav_home">概览</string>
+    <string name="nav_wifi">WiFi</string>
+    <string name="nav_channel">信道</string>
+    <string name="nav_devices">设备</string>
+    <string name="nav_speed">测速</string>
+    <string name="nav_advice">建议</string>
+
+    <!-- Common -->
+    <string name="action_start">开始</string>
+    <string name="action_stop">停止</string>
+    <string name="action_refresh">刷新</string>
+    <string name="action_share">分享</string>
+    <string name="action_copy">复制</string>
+    <string name="action_settings">设置</string>
+    <string name="action_scan">扫描</string>
+    <string name="status_idle">就绪</string>
+    <string name="status_running">进行中…</string>
+    <string name="status_done">已完成</string>
+    <string name="status_error">出错</string>
+    <string name="unit_dbm">dBm</string>
+    <string name="unit_mbps">Mbps</string>
+    <string name="unit_ms">ms</string>
+    <string name="unit_percent">%</string>
+    <string name="unknown">未知</string>
+    <string name="none">无</string>
+
+    <!-- Permissions -->
+    <string name="permission_title">需要权限</string>
+    <string name="permission_rationale">扫描周边 WiFi 与读取连接信息需要位置权限（Android 系统限制）。测速与诊断需要网络权限。</string>
+    <string name="permission_grant">授予权限</string>
+    <string name="permission_denied">权限被拒绝，部分功能不可用</string>
+
+    <!-- Home -->
+    <string name="home_current_wifi">当前 WiFi</string>
+    <string name="home_not_connected">未连接 WiFi</string>
+    <string name="home_network_quality">网络质量</string>
+    <string name="home_quick_scan">快速诊断</string>
+    <string name="home_best_channel">推荐信道</string>
+    <string name="home_connected_devices">已连接设备</string>
+    <string name="home_last_speed">最近测速</string>
+
+    <!-- WiFi details -->
+    <string name="wifi_ssid">名称 (SSID)</string>
+    <string name="wifi_bssid">路由器 MAC</string>
+    <string name="wifi_vendor">厂商</string>
+    <string name="wifi_rssi">信号强度</string>
+    <string name="wifi_frequency">频率</string>
+    <string name="wifi_channel">信道</string>
+    <string name="wifi_channel_width">信道宽度</string>
+    <string name="wifi_security">安全类型</string>
+    <string name="wifi_standard">WiFi 标准</string>
+    <string name="wifi_link_speed">连接速率</string>
+    <string name="wifi_tx_speed">发送</string>
+    <string name="wifi_rx_speed">接收</string>
+    <string name="wifi_ip">本机 IP</string>
+    <string name="wifi_gateway">网关</string>
+    <string name="wifi_dns">DNS</string>
+    <string name="wifi_band_2g">2.4 GHz</string>
+    <string name="wifi_band_5g">5 GHz</string>
+    <string name="wifi_band_6g">6 GHz</string>
+    <string name="wifi_filter_all">全部</string>
+    <string name="wifi_networks_found">发现 %1$d 个网络</string>
+    <string name="wifi_signal_excellent">极佳</string>
+    <string name="wifi_signal_good">良好</string>
+    <string name="wifi_signal_fair">一般</string>
+    <string name="wifi_signal_weak">较弱</string>
+    <string name="wifi_signal_dead">极弱</string>
+
+    <!-- Channel -->
+    <string name="channel_title">信道分析</string>
+    <string name="channel_rating">信道评分</string>
+    <string name="channel_recommend">最佳信道</string>
+    <string name="channel_overlap_hint">拥挤信道会互相干扰，建议切换到评分更高的信道</string>
+    <string name="channel_score">评分</string>
+    <string name="channel_ap_count">AP 数</string>
+    <string name="channel_24">2.4 GHz 信道</string>
+    <string name="channel_5">5 GHz 信道</string>
+
+    <!-- Devices -->
+    <string name="devices_title">局域网设备</string>
+    <string name="devices_scanning">正在扫描局域网…</string>
+    <string name="devices_found">发现 %1$d 台设备</string>
+    <string name="devices_empty">点击扫描以发现局域网设备</string>
+    <string name="devices_gateway_tag">网关</string>
+    <string name="devices_this_device">本机</string>
+
+    <!-- Speed test -->
+    <string name="speed_title">网络测速</string>
+    <string name="speed_download">下载</string>
+    <string name="speed_upload">上传</string>
+    <string name="speed_latency">延迟</string>
+    <string name="speed_jitter">抖动</string>
+    <string name="speed_packet_loss">丢包率</string>
+    <string name="speed_server">测速节点</string>
+    <string name="speed_server_auto">自动（Cloudflare）</string>
+    <string name="speed_start">开始测速</string>
+    <string name="speed_testing_download">正在测下载…</string>
+    <string name="speed_testing_upload">正在测上传…</string>
+    <string name="speed_testing_latency">正在测延迟…</string>
+    <string name="speed_progress">进度 %1$d%%</string>
+    <string name="speed_score">网络评分</string>
+    <string name="speed_hint">测速会消耗流量，建议在 WiFi 下进行</string>
+    <string name="speed_history">历史记录</string>
+    <string name="speed_no_history">暂无测速记录</string>
+
+    <!-- Advisor -->
+    <string name="advice_title">优化建议</string>
+    <string name="advice_refresh">生成建议</string>
+    <string name="advice_analyzing">正在分析网络…</string>
+    <string name="advice_empty">完成扫描或测速后，这里会给出针对性优化建议</string>
+    <string name="advice_severity_high">严重</string>
+    <string name="advice_severity_medium">注意</string>
+    <string name="advice_severity_low">提示</string>
+    <string name="advice_severity_ok">正常</string>
+
+    <!-- Settings -->
+    <string name="settings_title">设置</string>
+    <string name="settings_theme">主题</string>
+    <string name="settings_theme_system">跟随系统</string>
+    <string name="settings_theme_light">浅色</string>
+    <string name="settings_theme_dark">深色</string>
+    <string name="settings_refresh">扫描刷新间隔</string>
+    <string name="settings_refresh_1s">1 秒</string>
+    <string name="settings_refresh_3s">3 秒</string>
+    <string name="settings_refresh_5s">5 秒</string>
+    <string name="settings_refresh_10s">10 秒</string>
+    <string name="settings_language">界面语言</string>
+    <string name="settings_language_system">跟随系统</string>
+    <string name="settings_language_zh">中文</string>
+    <string name="settings_language_en">English</string>
+    <string name="settings_about">关于</string>
+    <string name="settings_version">版本 %1$s</string>
+    <string name="settings_open_source">开源网络分析工具，功能对标 WiFi Analyzer Pro，并借鉴全球网测的测速与诊断思路。</string>
+</resources>

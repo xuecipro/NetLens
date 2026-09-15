@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NetLens</string>
+    <string name="app_tagline">Analyze · Speed · Optimize</string>
+
+    <string name="nav_home">Home</string>
+    <string name="nav_wifi">WiFi</string>
+    <string name="nav_channel">Channels</string>
+    <string name="nav_devices">Devices</string>
+    <string name="nav_speed">Speed</string>
+    <string name="nav_advice">Advice</string>
+
+    <string name="action_start">Start</string>
+    <string name="action_stop">Stop</string>
+    <string name="action_refresh">Refresh</string>
+    <string name="action_share">Share</string>
+    <string name="action_copy">Copy</string>
+    <string name="action_settings">Settings</string>
+    <string name="action_scan">Scan</string>
+    <string name="status_idle">Ready</string>
+    <string name="status_running">Running…</string>
+    <string name="status_done">Done</string>
+    <string name="status_error">Error</string>
+    <string name="unit_dbm">dBm</string>
+    <string name="unit_mbps">Mbps</string>
+    <string name="unit_ms">ms</string>
+    <string name="unit_percent">%</string>
+    <string name="unknown">Unknown</string>
+    <string name="none">None</string>
+
+    <string name="permission_title">Permissions required</string>
+    <string name="permission_rationale">Location is required by Android to scan nearby Wi‑Fi. Network access is required for speed test and diagnostics.</string>
+    <string name="permission_grant">Grant permissions</string>
+    <string name="permission_denied">Permissions denied. Some features are unavailable.</string>
+
+    <string name="home_current_wifi">Current Wi‑Fi</string>
+    <string name="home_not_connected">Not connected to Wi‑Fi</string>
+    <string name="home_network_quality">Network quality</string>
+    <string name="home_quick_scan">Quick diagnose</string>
+    <string name="home_best_channel">Best channel</string>
+    <string name="home_connected_devices">Connected devices</string>
+    <string name="home_last_speed">Last speed test</string>
+
+    <string name="wifi_ssid">Name (SSID)</string>
+    <string name="wifi_bssid">Router MAC</string>
+    <string name="wifi_vendor">Vendor</string>
+    <string name="wifi_rssi">Signal</string>
+    <string name="wifi_frequency">Frequency</string>
+    <string name="wifi_channel">Channel</string>
+    <string name="wifi_channel_width">Channel width</string>
+    <string name="wifi_security">Security</string>
+    <string name="wifi_standard">Wi‑Fi standard</string>
+    <string name="wifi_link_speed">Link speed</string>
+    <string name="wifi_tx_speed">TX</string>
+    <string name="wifi_rx_speed">RX</string>
+    <string name="wifi_ip">Device IP</string>
+    <string name="wifi_gateway">Gateway</string>
+    <string name="wifi_dns">DNS</string>
+    <string name="wifi_band_2g">2.4 GHz</string>
+    <string name="wifi_band_5g">5 GHz</string>
+    <string name="wifi_band_6g">6 GHz</string>
+    <string name="wifi_filter_all">All</string>
+    <string name="wifi_networks_found">%1$d networks found</string>
+    <string name="wifi_signal_excellent">Excellent</string>
+    <string name="wifi_signal_good">Good</string>
+    <string name="wifi_signal_fair">Fair</string>
+    <string name="wifi_signal_weak">Weak</string>
+    <string name="wifi_signal_dead">Very weak</string>
+
+    <string name="channel_title">Channel analysis</string>
+    <string name="channel_rating">Channel rating</string>
+    <string name="channel_recommend">Best channels</string>
+    <string name="channel_overlap_hint">Crowded channels interfere. Prefer higher-rated ones.</string>
+    <string name="channel_score">Score</string>
+    <string name="channel_ap_count">APs</string>
+    <string name="channel_24">2.4 GHz channels</string>
+    <string name="channel_5">5 GHz channels</string>
+
+    <string name="devices_title">LAN devices</string>
+    <string name="devices_scanning">Scanning LAN…</string>
+    <string name="devices_found">%1$d devices found</string>
+    <string name="devices_empty">Tap scan to discover LAN devices</string>
+    <string name="devices_gateway_tag">Gateway</string>
+    <string name="devices_this_device">This device</string>
+
+    <string name="speed_title">Speed test</string>
+    <string name="speed_download">Download</string>
+    <string name="speed_upload">Upload</string>
+    <string name="speed_latency">Latency</string>
+    <string name="speed_jitter">Jitter</string>
+    <string name="speed_packet_loss">Packet loss</string>
+    <string name="speed_server">Server</string>
+    <string name="speed_server_auto">Auto (Cloudflare)</string>
+    <string name="speed_start">Start test</string>
+    <string name="speed_testing_download">Testing download…</string>
+    <string name="speed_testing_upload">Testing upload…</string>
+    <string name="speed_testing_latency">Testing latency…</string>
+    <string name="speed_progress">Progress %1$d%%</string>
+    <string name="speed_score">Network score</string>
+    <string name="speed_hint">Speed test uses mobile/Wi‑Fi data.</string>
+    <string name="speed_history">History</string>
+    <string name="speed_no_history">No test history yet</string>
+
+    <string name="advice_title">Optimization advice</string>
+    <string name="advice_refresh">Analyze</string>
+    <string name="advice_analyzing">Analyzing network…</string>
+    <string name="advice_empty">Run a scan or speed test to get tailored advice.</string>
+    <string name="advice_severity_high">Critical</string>
+    <string name="advice_severity_medium">Warning</string>
+    <string name="advice_severity_low">Tip</string>
+    <string name="advice_severity_ok">OK</string>
+
+    <string name="settings_title">Settings</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_system">System</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_refresh">Scan refresh interval</string>
+    <string name="settings_refresh_1s">1s</string>
+    <string name="settings_refresh_3s">3s</string>
+    <string name="settings_refresh_5s">5s</string>
+    <string name="settings_refresh_10s">10s</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_system">System</string>
+    <string name="settings_language_zh">中文</string>
+    <string name="settings_language_en">English</string>
+    <string name="settings_about">About</string>
+    <string name="settings_version">Version %1$s</string>
+    <string name="settings_open_source">Open-source network analyzer covering WiFi Analyzer Pro features, with speed test &amp; diagnostics inspired by CAICT Global Network Test.</string>
+</resources>

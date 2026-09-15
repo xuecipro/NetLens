@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Chinese is the default (values/). This file exists for explicit zh-rCN/zh markers. -->
+    <string name="app_tagline">网络分析 · 测速 · 优化</string>
+</resources>
