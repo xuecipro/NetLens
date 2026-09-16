@@ -2,6 +2,7 @@ package com.opensource.netlens.ui.screens
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -79,22 +80,67 @@ fun SettingsScreen(vm: MainViewModel, onBack: () -> Unit = {}) {
             }
 
             Card(shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp)) {
-                Row(
-                    Modifier.padding(14.dp).fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(stringResource(R.string.settings_monet), fontWeight = FontWeight.SemiBold)
+                Column(Modifier.padding(14.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(stringResource(R.string.settings_monet), fontWeight = FontWeight.SemiBold)
+                            Text(
+                                stringResource(R.string.settings_monet_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = state.dynamicColor,
+                            onCheckedChange = { vm.setDynamicColor(it) }
+                        )
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    // Live palette preview — proves Monet is applying
+                    Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                        com.opensource.netlens.ui.theme.previewSwatches(
+                            MaterialTheme.colorScheme
+                        ).forEach { (name, color) ->
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                androidx.compose.foundation.layout.Box(
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .height(36.dp)
+                                        .background(
+                                            color = color,
+                                            shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp)
+                                        )
+                                )
+                                Text(
+                                    name,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                    if (state.dynamicColor && com.opensource.netlens.ui.theme.monetSupported()) {
                         Text(
-                            stringResource(R.string.settings_monet_desc),
-                            style = MaterialTheme.typography.bodySmall,
+                            "当前使用壁纸取色（Material You）",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    } else if (state.dynamicColor) {
+                        Text(
+                            "系统低于 Android 12，已回退品牌色",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        Text(
+                            "当前使用 NetLens 品牌色",
+                            style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    Switch(
-                        checked = state.dynamicColor,
-                        onCheckedChange = { vm.setDynamicColor(it) }
-                    )
                 }
             }
 

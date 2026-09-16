@@ -1,15 +1,23 @@
 package com.opensource.netlens.ui.theme
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 
 val BrandBlue = Color(0xFF1B6EF3)
 val BrandBlueDark = Color(0xFF4DA3FF)
@@ -67,9 +75,21 @@ private val DarkColors = darkColorScheme(
     onErrorContainer = Color(0xFFFEE2E2)
 )
 
+fun Context.findActivity(): Activity? {
+    var ctx: Context? = this
+    while (ctx is ContextWrapper) {
+        if (ctx is Activity) return ctx
+        ctx = ctx.baseContext
+    }
+    return null
+}
+
+/** True when this device can sample wallpaper / Monet colors. */
+fun monetSupported(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+
 /**
- * Theme with optional Material You / Monet dynamic color (Android 12+).
- * [dynamicColor] true → sample wallpaper colors; false → brand palette.
+ * Material You / Monet — same approach as Google's Compose samples:
+ * dynamicLight/DarkColorScheme(activity), then apply to window bars.
  */
 @Composable
 fun NetLensTheme(
@@ -82,13 +102,45 @@ fun NetLensTheme(
         "light" -> false
         else -> isSystemInDarkTheme()
     }
+    // Must be Activity context for wallpaper colors (MIUI/OEM safe)
     val context = LocalContext.current
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+    val activity = context.findActivity()
+    val colorScheme = resolveColorScheme(context, activity, dark, dynamicColor)
+
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = activity?.window ?: return@SideEffect
+            window.statusBarColor = colorScheme.background.toArgb()
+            window.navigationBarColor = colorScheme.surface.toArgb()
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !dark
+            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !dark
         }
-        dark -> DarkColors
-        else -> LightColors
     }
+
     MaterialTheme(colorScheme = colorScheme, content = content)
 }
+
+fun resolveColorScheme(
+    context: Context,
+    activity: Activity?,
+    dark: Boolean,
+    dynamicColor: Boolean
+): ColorScheme {
+    if (dynamicColor && monetSupported()) {
+        val ctx = activity ?: context
+        return runCatching {
+            if (dark) dynamicDarkColorScheme(ctx) else dynamicLightColorScheme(ctx)
+        }.getOrNull() ?: if (dark) DarkColors else LightColors
+    }
+    return if (dark) DarkColors else LightColors
+}
+
+/** Preview swatches so users can see whether Monet is active. */
+fun previewSwatches(scheme: ColorScheme): List<Pair<String, Color>> = listOf(
+    "primary" to scheme.primary,
+    "secondary" to scheme.secondary,
+    "tertiary" to scheme.tertiary,
+    "surface" to scheme.surface,
+    "background" to scheme.background
+)

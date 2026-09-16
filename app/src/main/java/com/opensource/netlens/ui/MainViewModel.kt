@@ -74,7 +74,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         UiState(
             scanIntervalMs = prefs.getLong("scan_interval", 3000L),
             themeMode = prefs.getString("theme", "system") ?: "system",
-            selectedSpeedNodeId = prefs.getString("speed_node", "tuna") ?: "tuna",
+            selectedSpeedNodeId = prefs.getString("speed_node", "ali_dns") ?: "ali_dns",
             dynamicColor = prefs.getBoolean("dynamic_color", true)
         )
     )
@@ -286,12 +286,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     it.copy(ping = ping, speedPhase = "download", speedProgress = 5)
                 }
 
-                val download = if (node.downloadUrl.isBlank()) {
+                val download = if (node.latencyOnly || node.downloadUrls.isEmpty()) {
                     0.0
                 } else {
                     speedEngine.download(
                         sizeBytes = node.downloadSizeBytes,
-                        urlOverride = node.downloadUrl
+                        urlCandidates = node.downloadUrls
                     ) { p ->
                         _state.update {
                             it.copy(speedProgress = 5 + (p.percent * 45) / 100)
@@ -315,13 +315,18 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     0.0
                 }
 
-                val (score, grade) = SpeedTestEngine.scoreOf(
-                    downloadMbps = download,
-                    uploadMbps = upload,
-                    latencyMs = ping.avgMs,
-                    jitterMs = ping.jitterMs,
-                    lossPercent = ping.lossPercent
-                )
+                val latencyOnly = node.latencyOnly || (download <= 0.0 && upload <= 0.0)
+                val (score, grade) = if (latencyOnly) {
+                    SpeedTestEngine.scoreOf(0.0, 0.0, ping.avgMs, ping.jitterMs, ping.lossPercent)
+                } else {
+                    SpeedTestEngine.scoreOf(
+                        downloadMbps = download,
+                        uploadMbps = upload,
+                        latencyMs = ping.avgMs,
+                        jitterMs = ping.jitterMs,
+                        lossPercent = ping.lossPercent
+                    )
+                }
 
                 val label = if (java.util.Locale.getDefault().language.startsWith("zh"))
                     node.nameZh else node.nameEn
@@ -334,12 +339,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     packetLossPercent = ping.lossPercent,
                     serverLabel = label,
                     timestamp = System.currentTimeMillis(),
-                    score = if (node.downloadUrl.isBlank()) {
-                        SpeedTestEngine.scoreOf(0.0, 0.0, ping.avgMs, ping.jitterMs, ping.lossPercent).first
-                    } else score,
-                    grade = if (node.downloadUrl.isBlank()) {
-                        SpeedTestEngine.scoreOf(0.0, 0.0, ping.avgMs, ping.jitterMs, ping.lossPercent).second
-                    } else grade
+                    score = score,
+                    grade = grade
                 )
 
                 _state.update {

@@ -117,22 +117,44 @@ class SpeedTestEngine(
     enum class Phase { DOWNLOAD, UPLOAD, DONE }
 
     /**
-     * Download test: pull a large object and compute throughput from received bytes.
-     * sizeBytes default ~25 MB for a reasonably stable sample.
+     * Download test. Tries [urlCandidates] in order; uses HTTP Range when possible
+     * so large mirror ISOs only stream the first [sizeBytes].
      */
     suspend fun download(
         sizeBytes: Long = 25L * 1024 * 1024,
-        urlOverride: String? = null,
+        urlCandidates: List<String> = listOf(downloadUrl),
         onProgress: (Progress) -> Unit = {}
     ): Double = withContext(Dispatchers.IO) {
-        val base = urlOverride?.takeIf { it.isNotBlank() } ?: downloadUrl
-        val url = if (base.contains("__down") || "?" !in base && sizeBytes > 0 && base.contains("speed.cloudflare.com")) {
-            base + (if ("?" in base) "&" else "?") + "bytes=$sizeBytes"
-        } else base
+        var lastError: Exception? = null
+        for (candidate in urlCandidates.filter { it.isNotBlank() }) {
+            try {
+                return@withContext downloadOnce(candidate, sizeBytes, onProgress)
+            } catch (e: Exception) {
+                lastError = e
+            }
+        }
+        throw lastError ?: IOException("No download URL")
+    }
 
-        val request = Request.Builder().url(url).get().build()
-        val response = client.newCall(request).execute()
-        if (!response.isSuccessful) throw IOException("HTTP ${response.code}")
+    private fun downloadOnce(
+        rawUrl: String,
+        sizeBytes: Long,
+        onProgress: (Progress) -> Unit
+    ): Double {
+        val url = if (rawUrl.contains("speed.cloudflare.com") && rawUrl.contains("__down") && sizeBytes > 0) {
+            rawUrl + (if ("?" in rawUrl) "&" else "?") + "bytes=$sizeBytes"
+        } else rawUrl
+
+        val builder = Request.Builder().url(url).get()
+        // Range keeps huge ISOs from downloading entirely
+        if (!url.contains("__down") && sizeBytes > 0) {
+            builder.header("Range", "bytes=0-${sizeBytes - 1}")
+        }
+        val response = client.newCall(builder.build()).execute()
+        if (!response.isSuccessful && response.code != 206) {
+            response.close()
+            throw IOException("HTTP ${response.code}")
+        }
 
         val body = response.body ?: throw IOException("Empty body")
         val buffer = ByteArray(64 * 1024)
@@ -158,7 +180,7 @@ class SpeedTestEngine(
         val elapsedSec = (System.nanoTime() - start) / 1e9
         if (elapsedSec <= 0 || received <= 0) throw IOException("No data")
         onProgress(Progress(Phase.DOWNLOAD, 100))
-        received * 8.0 / elapsedSec / 1_000_000.0
+        return received * 8.0 / elapsedSec / 1_000_000.0
     }
 
     /**

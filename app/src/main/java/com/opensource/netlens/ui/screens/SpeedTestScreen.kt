@@ -423,14 +423,22 @@ fun NodeDetailCard(
                     )
                 }
                 Spacer(Modifier.height(4.dp))
-                if (node.isGateway) {
-                    StatusChip(if (isZh) "仅延迟 / 丢包" else "Latency / loss only", Color(0xFF7C3AED))
-                } else {
-                    val mb = (node.downloadSizeBytes / 1024 / 1024).toInt()
-                    StatusChip(
-                        if (isZh) "下载样本 ~${mb}MB · 可测上下行" else "~${mb}MB sample · DL/UL",
+                when {
+                    node.isGateway || node.latencyOnly -> StatusChip(
+                        if (isZh) "仅延迟 / 抖动 / 丢包" else "Latency / jitter / loss only",
+                        Color(0xFF7C3AED)
+                    )
+                    node.uploadUrl != null -> StatusChip(
+                        if (isZh) "下载+上传 · 多线程" else "Download + upload",
                         MaterialTheme.colorScheme.secondary
                     )
+                    else -> {
+                        val mb = (node.downloadSizeBytes / 1024 / 1024).toInt()
+                        StatusChip(
+                            if (isZh) "下载样本 ~${mb}MB · 多 URL 回退" else "~${mb}MB · multi-URL fallback",
+                            MaterialTheme.colorScheme.secondary
+                        )
+                    }
                 }
             }
         }
