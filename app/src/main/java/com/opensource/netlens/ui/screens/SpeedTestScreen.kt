@@ -1,6 +1,6 @@
 package com.opensource.netlens.ui.screens
 
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,14 +15,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Public
 import androidx.compose.material.icons.rounded.Router
+import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -34,14 +37,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.opensource.netlens.BuildConfig
 import com.opensource.netlens.R
 import com.opensource.netlens.data.speed.SpeedNode
 import com.opensource.netlens.data.speed.ThroughputUnits
@@ -49,6 +51,10 @@ import com.opensource.netlens.ui.MainViewModel
 import com.opensource.netlens.ui.components.StatusChip
 import com.opensource.netlens.util.Formatters
 
+/**
+ * Multi-node speed test UI (v1.1). Node picker is the first block so it is
+ * impossible to miss after installing the new APK.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SpeedTestScreen(vm: MainViewModel) {
@@ -56,16 +62,25 @@ fun SpeedTestScreen(vm: MainViewModel) {
     val isZh = java.util.Locale.getDefault().language.startsWith("zh")
     val node = vm.selectedSpeedNode()
 
-    LazyColumn(Modifier.fillMaxSize()) {
+    LazyColumn(
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        // ---- Header with version badge ----
         item {
             TopAppBar(
                 title = {
                     Column {
-                        Text(stringResource(R.string.speed_title), fontWeight = FontWeight.ExtraBold)
                         Text(
-                            "多节点测速 · Mbps / MB/s",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            stringResource(R.string.speed_title),
+                            fontWeight = FontWeight.ExtraBold,
+                            style = MaterialTheme.typography.headlineSmall
+                        )
+                        Text(
+                            "v${BuildConfig.VERSION_NAME} · MULTI-NODE 节点版",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 },
@@ -74,25 +89,62 @@ fun SpeedTestScreen(vm: MainViewModel) {
         }
 
         item {
-            Column(Modifier.padding(horizontal = 16.dp)) {
-                Text(
-                    stringResource(R.string.speed_server),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    if (isZh) "点击下方节点切换；当前：${node.nameZh}"
-                    else "Tap a node to switch. Current: ${node.nameEn}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(Modifier.height(10.dp))
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
+            ) {
+                Column(Modifier.padding(12.dp)) {
+                    Text(
+                        if (isZh) "本页为多节点测速（非旧版单节点）"
+                        else "Multi-node speed test page (not the old single-node UI)",
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                    Text(
+                        if (isZh) "若仍看到「测速节点: 自动（Cloudflare）」旧界面，请卸载后重装此 APK"
+                        else "If you still see the old 'Auto (Cloudflare)' UI, uninstall and reinstall this APK",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                }
             }
+            Spacer(Modifier.height(12.dp))
+        }
+
+        // ---- Node picker FIRST ----
+        item {
+            Row(
+                Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    if (isZh) "选择测速节点" else "Select speed node",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    modifier = Modifier.weight(1f)
+                )
+                StatusChip(
+                    "${vm.availableSpeedNodes().size} 节点",
+                    MaterialTheme.colorScheme.primary
+                )
+            }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                if (isZh) "当前：${node.nameZh}（${node.regionZh}）"
+                else "Current: ${node.nameEn} (${node.regionEn})",
+                modifier = Modifier.padding(horizontal = 16.dp),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(Modifier.height(8.dp))
         }
 
         items(vm.availableSpeedNodes(), key = { it.id }) { n ->
-            NodeCard(
+            NodeDetailCard(
                 node = n,
                 selected = n.id == state.selectedSpeedNodeId,
                 isZh = isZh,
@@ -100,148 +152,119 @@ fun SpeedTestScreen(vm: MainViewModel) {
             )
         }
 
+        // ---- Start button ----
         item {
             Spacer(Modifier.height(12.dp))
-            Card(
+            Button(
+                onClick = { vm.runSpeedTest() },
+                enabled = !state.isTestingSpeed,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(22.dp)
+                    .padding(horizontal = 16.dp)
+                    .height(52.dp),
+                shape = RoundedCornerShape(16.dp)
             ) {
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    val score = state.lastSpeed?.score ?: 0
-                    SpeedGauge(score = score, grade = state.lastSpeed?.grade ?: "-")
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        stringResource(R.string.speed_score),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                if (state.isTestingSpeed) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
-                    if (state.isTestingSpeed) {
-                        Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.status_running))
+                } else {
+                    Icon(Icons.Rounded.Speed, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        if (isZh) "开始测速 · ${node.nameZh}"
+                        else "Start · ${node.nameEn}"
+                    )
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+        }
+
+        // ---- Progress / Results ----
+        if (state.isTestingSpeed) {
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(18.dp)
+                ) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            phaseLabel(state.speedPhase),
+                            fontWeight = FontWeight.SemiBold
+                        )
                         LinearProgressIndicator(
                             progress = { state.speedProgress / 100f },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(10.dp)
+                                .clip(RoundedCornerShape(5.dp))
                         )
                         Text(
-                            phaseLabel(state.speedPhase) + " " +
-                                stringResource(R.string.speed_progress, state.speedProgress),
+                            stringResource(R.string.speed_progress, state.speedProgress),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
                 }
+                Spacer(Modifier.height(12.dp))
             }
         }
 
-        if (state.lastSpeed != null) {
+        state.lastSpeed?.let { s ->
             item {
-                val s = state.lastSpeed!!
                 Column(
-                    Modifier.padding(16.dp),
+                    Modifier.padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(
-                        "${stringResource(R.string.speed_server)}: ${s.serverLabel}",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        if (isZh) "测速结果（节点：${s.serverLabel}）"
+                        else "Result (node: ${s.serverLabel})",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
                     )
-                    DualUnitTile(
+                    DualSpeedCard(
                         title = stringResource(R.string.speed_download),
                         mbps = s.downloadMbps,
                         isZh = isZh,
                         accent = Color(0xFF1B6EF3)
                     )
-                    DualUnitTile(
+                    DualSpeedCard(
                         title = stringResource(R.string.speed_upload),
                         mbps = s.uploadMbps,
                         isZh = isZh,
                         accent = Color(0xFF0D9488)
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        ResultTile(
-                            Modifier.weight(1f),
-                            stringResource(R.string.speed_latency),
-                            Formatters.ms(s.latencyMs),
-                            stringResource(R.string.unit_ms)
-                        )
-                        ResultTile(
-                            Modifier.weight(1f),
-                            stringResource(R.string.speed_jitter),
-                            Formatters.ms(s.jitterMs),
-                            stringResource(R.string.unit_ms)
-                        )
-                        ResultTile(
-                            Modifier.weight(1f),
-                            stringResource(R.string.speed_packet_loss),
-                            Formatters.percent(s.packetLossPercent),
-                            stringResource(R.string.unit_percent)
-                        )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        MiniStat(Modifier.weight(1f), stringResource(R.string.speed_latency), Formatters.ms(s.latencyMs), "ms")
+                        MiniStat(Modifier.weight(1f), stringResource(R.string.speed_jitter), Formatters.ms(s.jitterMs), "ms")
+                        MiniStat(Modifier.weight(1f), stringResource(R.string.speed_packet_loss), Formatters.percent(s.packetLossPercent), "%")
                     }
-                    Button(
-                        onClick = { vm.runSpeedTest() },
-                        enabled = !state.isTestingSpeed,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            if (state.isTestingSpeed) stringResource(R.string.status_running)
-                            else "${stringResource(R.string.speed_start)} · ${if (isZh) node.nameZh else node.nameEn}"
+                            "${s.score}",
+                            style = MaterialTheme.typography.displaySmall,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.primary
                         )
+                        Spacer(Modifier.width(8.dp))
+                        Text(s.grade, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.speed_score), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-            }
-        } else if (state.ping != null) {
-            item {
-                val p = state.ping!!
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        ResultTile(Modifier.weight(1f), stringResource(R.string.speed_latency), Formatters.ms(p.avgMs), stringResource(R.string.unit_ms))
-                        ResultTile(Modifier.weight(1f), stringResource(R.string.speed_jitter), Formatters.ms(p.jitterMs), stringResource(R.string.unit_ms))
-                        ResultTile(Modifier.weight(1f), stringResource(R.string.speed_packet_loss), Formatters.percent(p.lossPercent), stringResource(R.string.unit_percent))
-                    }
-                    Button(
-                        onClick = { vm.runSpeedTest() },
-                        enabled = !state.isTestingSpeed,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Text(
-                            if (state.isTestingSpeed) stringResource(R.string.status_running)
-                            else "${stringResource(R.string.speed_start)} · ${if (isZh) node.nameZh else node.nameEn}"
-                        )
-                    }
-                }
-            }
-        } else {
-            item {
-                Column(Modifier.padding(16.dp)) {
-                    Button(
-                        onClick = { vm.runSpeedTest() },
-                        enabled = !state.isTestingSpeed,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Text("${stringResource(R.string.speed_start)} · ${if (isZh) node.nameZh else node.nameEn}")
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        stringResource(R.string.speed_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Spacer(Modifier.height(16.dp))
             }
         }
 
-        if (state.statusMessage.isNotBlank()) {
+        state.statusMessage.takeIf { it.isNotBlank() }?.let { msg ->
             item {
                 Text(
-                    state.statusMessage,
+                    msg,
                     modifier = Modifier.padding(horizontal = 16.dp),
                     color = MaterialTheme.colorScheme.error
                 )
@@ -252,7 +275,7 @@ fun SpeedTestScreen(vm: MainViewModel) {
             Text(
                 stringResource(R.string.speed_history),
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
         }
@@ -261,83 +284,83 @@ fun SpeedTestScreen(vm: MainViewModel) {
             item {
                 Text(
                     stringResource(R.string.speed_no_history),
-                    modifier = Modifier.padding(horizontal = 16.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         } else {
-            items(state.speedHistory.size) { idx ->
-                val item = state.speedHistory[idx]
+            items(state.speedHistory) { h ->
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 4.dp),
                     shape = RoundedCornerShape(14.dp)
                 ) {
-                    Row(
-                        Modifier.padding(12.dp).fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text(item.serverLabel, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelLarge)
+                            Text(h.serverLabel, fontWeight = FontWeight.SemiBold)
                             Text(
-                                ThroughputUnits.formatDual(item.downloadMbps, isZh),
+                                ThroughputUnits.formatDual(h.downloadMbps, isZh),
                                 style = MaterialTheme.typography.bodySmall
                             )
                             Text(
-                                "↑ ${ThroughputUnits.fmt(item.uploadMbps)} Mbps · ping ${Formatters.ms(item.latencyMs)} ms",
+                                "↑ ${ThroughputUnits.fmt(h.uploadMbps)} Mbps · ${Formatters.ms(h.latencyMs)} ms",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        Text(
-                            "${item.score}",
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                        Text("${h.score}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     }
                 }
             }
         }
 
-        item { Spacer(Modifier.height(28.dp)) }
+        item { Spacer(Modifier.height(32.dp)) }
     }
 }
 
 @Composable
-private fun NodeCard(
+fun NodeDetailCard(
     node: SpeedNode,
     selected: Boolean,
     isZh: Boolean,
     onSelect: () -> Unit
 ) {
+    val container = if (selected) MaterialTheme.colorScheme.primaryContainer
+    else MaterialTheme.colorScheme.surface
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .padding(horizontal = 16.dp, vertical = 5.dp)
             .clickable(onClick = onSelect),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (selected)
-                MaterialTheme.colorScheme.primaryContainer
-            else MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (selected) 3.dp else 1.dp)
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = container),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (selected) 4.dp else 1.dp)
     ) {
-        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.Top) {
-            Icon(
-                if (node.isGateway) Icons.Rounded.Router else Icons.Rounded.Public,
-                contentDescription = null,
-                tint = if (selected) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.width(10.dp))
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.Top) {
+            Box(
+                Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (selected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.surfaceVariant
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    if (node.isGateway) Icons.Rounded.Router else Icons.Rounded.Public,
+                    contentDescription = null,
+                    tint = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         if (isZh) node.nameZh else node.nameEn,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.ExtraBold,
+                        style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.weight(1f)
                     )
                     if (selected) {
@@ -349,9 +372,8 @@ private fun NodeCard(
                     }
                 }
                 Text(
-                    "ISP: ${if (isZh) node.ispZh else node.ispEn}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    "ISP  ${if (isZh) node.ispZh else node.ispEn}",
+                    style = MaterialTheme.typography.bodySmall
                 )
                 Text(
                     if (isZh) node.regionZh else node.regionEn,
@@ -360,28 +382,26 @@ private fun NodeCard(
                 )
                 if (node.host.isNotBlank()) {
                     Text(
-                        "Host: ${node.host} · ${node.protocol}",
+                        "Host  ${node.host}  ·  ${node.protocol}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 if (node.pingHost.isNotBlank()) {
                     Text(
-                        "Ping: ${node.pingHost}",
+                        "Ping  ${node.pingHost}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                if (!node.downloadUrl.isBlank()) {
-                    val mb = node.downloadSizeBytes / 1024 / 1024
+                Spacer(Modifier.height(4.dp))
+                if (node.isGateway) {
+                    StatusChip(if (isZh) "仅延迟 / 丢包" else "Latency / loss only", Color(0xFF7C3AED))
+                } else {
+                    val mb = (node.downloadSizeBytes / 1024 / 1024).toInt()
                     StatusChip(
-                        if (isZh) "样本约 ${mb}MB" else "~${mb}MB sample",
+                        if (isZh) "下载样本 ~${mb}MB · 可测上下行" else "~${mb}MB sample · DL/UL",
                         MaterialTheme.colorScheme.secondary
-                    )
-                } else if (node.isGateway) {
-                    StatusChip(
-                        if (isZh) "仅延迟/丢包" else "Latency/loss only",
-                        MaterialTheme.colorScheme.tertiary
                     )
                 }
             }
@@ -390,22 +410,36 @@ private fun NodeCard(
 }
 
 @Composable
-private fun DualUnitTile(title: String, mbps: Double, isZh: Boolean, accent: Color) {
-    Card(shape = RoundedCornerShape(16.dp)) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+fun DualSpeedCard(title: String, mbps: Double, isZh: Boolean, accent: Color) {
+    Card(shape = RoundedCornerShape(18.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(title, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(
                 "${ThroughputUnits.fmt(mbps)} Mbps",
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.ExtraBold,
                 color = accent
             )
             Text(
                 "${ThroughputUnits.fmt(ThroughputUnits.mbpsToMBs(mbps))} MB/s",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = accent.copy(alpha = 0.85f)
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = accent.copy(alpha = 0.8f)
             )
+        }
+    }
+}
+
+@Composable
+fun MiniStat(modifier: Modifier = Modifier, title: String, value: String, unit: String) {
+    Card(modifier = modifier, shape = RoundedCornerShape(14.dp)) {
+        Column(
+            Modifier.padding(10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(value, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+            Text(unit, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(title, style = MaterialTheme.typography.labelSmall)
         }
     }
 }
@@ -418,52 +452,4 @@ private fun phaseLabel(phase: String): String = when (phase) {
     "done" -> stringResource(R.string.status_done)
     "error" -> stringResource(R.string.status_error)
     else -> stringResource(R.string.status_running)
-}
-
-@Composable
-fun ResultTile(modifier: Modifier = Modifier, title: String, value: String, unit: String) {
-    Card(modifier = modifier, shape = RoundedCornerShape(14.dp)) {
-        Column(Modifier.padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text(unit, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(title, style = MaterialTheme.typography.labelSmall)
-        }
-    }
-}
-
-@Composable
-fun SpeedGauge(score: Int, grade: String) {
-    val primary = MaterialTheme.colorScheme.primary
-    val track = MaterialTheme.colorScheme.surfaceVariant
-    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(170.dp)) {
-        Canvas(Modifier.size(170.dp)) {
-            val stroke = 14.dp.toPx()
-            val inset = stroke / 2
-            val startAngle = 140f
-            val sweep = 260f
-            drawArc(
-                color = track,
-                startAngle = startAngle,
-                sweepAngle = sweep,
-                useCenter = false,
-                style = Stroke(width = stroke, cap = StrokeCap.Round),
-                topLeft = Offset(inset, inset),
-                size = androidx.compose.ui.geometry.Size(size.width - stroke, size.height - stroke)
-            )
-            val frac = score.coerceIn(0, 100) / 100f
-            drawArc(
-                color = primary,
-                startAngle = startAngle,
-                sweepAngle = sweep * frac,
-                useCenter = false,
-                style = Stroke(width = stroke, cap = StrokeCap.Round),
-                topLeft = Offset(inset, inset),
-                size = androidx.compose.ui.geometry.Size(size.width - stroke, size.height - stroke)
-            )
-        }
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("$score", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
-            Text(grade, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-        }
-    }
 }
