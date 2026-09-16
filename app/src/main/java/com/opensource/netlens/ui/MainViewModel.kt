@@ -19,6 +19,7 @@ import com.opensource.netlens.data.speed.PingEngine
 import com.opensource.netlens.data.speed.SpeedNode
 import com.opensource.netlens.data.speed.SpeedNodes
 import com.opensource.netlens.data.speed.SpeedTestEngine
+import com.opensource.netlens.data.tools.NetworkTools
 import com.opensource.netlens.data.wifi.WifiRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -46,7 +47,16 @@ data class UiState(
     val scanIntervalMs: Long = 3000L,
     val themeMode: String = "system",
     val actionMessage: String? = null,
-    val selectedSpeedNodeId: String = "cf_auto"
+    val selectedSpeedNodeId: String = "tuna",
+    val dynamicColor: Boolean = true,
+    val isPingToolRunning: Boolean = false,
+    val pingToolText: String? = null,
+    val isDnsToolRunning: Boolean = false,
+    val dnsToolText: String? = null,
+    val isHttpToolRunning: Boolean = false,
+    val httpToolText: String? = null,
+    val isPublicIpRunning: Boolean = false,
+    val publicIpText: String? = null
 )
 
 class MainViewModel(app: Application) : AndroidViewModel(app) {
@@ -56,10 +66,18 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val pingEngine = PingEngine()
     private val speedEngine = SpeedTestEngine()
     private val actionExecutor = NetworkActionExecutor(app)
+    private val netTools = NetworkTools()
 
     private val prefs = app.getSharedPreferences("netlens_prefs", android.content.Context.MODE_PRIVATE)
 
-    private val _state = MutableStateFlow(UiState(scanIntervalMs = prefs.getLong("scan_interval", 3000L), themeMode = prefs.getString("theme", "system") ?: "system"))
+    private val _state = MutableStateFlow(
+        UiState(
+            scanIntervalMs = prefs.getLong("scan_interval", 3000L),
+            themeMode = prefs.getString("theme", "system") ?: "system",
+            selectedSpeedNodeId = prefs.getString("speed_node", "tuna") ?: "tuna",
+            dynamicColor = prefs.getBoolean("dynamic_color", true)
+        )
+    )
     val state: StateFlow<UiState> = _state.asStateFlow()
 
     private var wifiJob: Job? = null
@@ -127,12 +145,84 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun setSpeedNode(id: String) {
+        prefs.edit().putString("speed_node", id).apply()
         _state.update { it.copy(selectedSpeedNodeId = id) }
+    }
+
+    fun setDynamicColor(enabled: Boolean) {
+        prefs.edit().putBoolean("dynamic_color", enabled).apply()
+        _state.update { it.copy(dynamicColor = enabled) }
+    }
+
+    fun runPingTool(host: String) {
+        if (host.isBlank()) return
+        viewModelScope.launch {
+            _state.update { it.copy(isPingToolRunning = true, pingToolText = "Ping $host …") }
+            val r = netTools.pingHost(host)
+            _state.update {
+                it.copy(
+                    isPingToolRunning = false,
+                    pingToolText = if (r.reachable)
+                        "$host 可达 · 平均 ${"%.1f".format(r.avgMs ?: 0.0)} ms · ${r.samples.size} 次"
+                    else
+                        "$host 不可达 / 超时"
+                )
+            }
+        }
+    }
+
+    fun runDnsTool(host: String) {
+        if (host.isBlank()) return
+        viewModelScope.launch {
+            _state.update { it.copy(isDnsToolRunning = true, dnsToolText = "解析 $host …") }
+            val r = netTools.resolveDns(host)
+            _state.update {
+                it.copy(
+                    isDnsToolRunning = false,
+                    dnsToolText = if (r.error == null && r.addresses.isNotEmpty())
+                        "${r.addresses.joinToString(", ")} · ${"%.0f".format(r.elapsedMs)} ms"
+                    else
+                        "解析失败：${r.error ?: "无结果"}"
+                )
+            }
+        }
+    }
+
+    fun runHttpCheck(url: String) {
+        if (url.isBlank()) return
+        viewModelScope.launch {
+            _state.update { it.copy(isHttpToolRunning = true, httpToolText = "检测 $url …") }
+            val r = netTools.httpCheck(url)
+            _state.update {
+                it.copy(
+                    isHttpToolRunning = false,
+                    httpToolText = if (r.ok)
+                        "${r.url} → HTTP ${r.code} · ${"%.0f".format(r.elapsedMs)} ms"
+                    else
+                        "${r.url} 失败：${r.error ?: "HTTP ${r.code}"} · ${"%.0f".format(r.elapsedMs)} ms"
+                )
+            }
+        }
+    }
+
+    fun runPublicIp() {
+        viewModelScope.launch {
+            _state.update { it.copy(isPublicIpRunning = true, publicIpText = "查询中…") }
+            val r = netTools.publicIp()
+            _state.update {
+                it.copy(
+                    isPublicIpRunning = false,
+                    publicIpText = r.ip?.let { ip -> "公网 IP：$ip（${r.source}）" }
+                        ?: "查询失败：${r.error ?: "未知"}"
+                )
+            }
+        }
     }
 
     fun selectedSpeedNode(): SpeedNode = SpeedNodes.byId(_state.value.selectedSpeedNodeId)
 
-    fun availableSpeedNodes(): List<SpeedNode> = SpeedNodes.ALL
+    fun availableSpeedNodes(): List<SpeedNode> =
+        SpeedNodes.domestic() + SpeedNodes.international()
 
     fun connectToNetwork(network: WifiNetwork) {
         val result = actionExecutor.connectToNetwork(network)

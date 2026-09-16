@@ -112,16 +112,33 @@ class NetworkActionExecutor(private val context: Context) {
 
     private fun openRouterAdmin(gateway: String?): ActionResult {
         val host = gateway?.takeIf { it.isNotBlank() } ?: return ActionResult.Error(
-            "未获取到网关地址",
-            "Gateway address unavailable"
+            "未获取到网关地址，请连接 WiFi 后重试",
+            "Gateway unavailable. Connect to Wi‑Fi first."
         )
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("http://$host")).apply {
+        // Prefer a port that actually accepts TCP; fall back to common list.
+        val probed = kotlinx.coroutines.runBlocking {
+            RouterAdminProbe.probe(host)
+        }
+        val url = probed?.url ?: RouterAdminProbe.defaultUrl(host)
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         return try {
-            ActionResult.Navigation(intent)
+            // Also copy fallback URLs so the user can paste if the first fails.
+            val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            val alts = RouterAdminProbe.allUrls(host).joinToString("\n") { it.url }
+            cm.setPrimaryClip(ClipData.newPlainText("NetLens Router URLs", alts))
+            ActionResult.Navigation(intent).also {
+                toast(
+                    if (probed != null) "已打开 ${probed.label}（备选地址已复制）"
+                    else "尝试打开 http://$host（若 refused，备选地址已复制）"
+                )
+            }
         } catch (e: Exception) {
-            ActionResult.Error("无法打开路由器页面", "Cannot open router page")
+            ActionResult.Error(
+                RouterAdminProbe.refusedHelpText(host),
+                "Cannot open router page. See copied help."
+            )
         }
     }
 

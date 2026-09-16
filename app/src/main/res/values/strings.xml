@@ -7,7 +7,7 @@
     <string name="nav_home">概览</string>
     <string name="nav_wifi">WiFi</string>
     <string name="nav_channel">信道</string>
-    <string name="nav_devices">设备</string>
+    <string name="nav_devices">工具</string>
     <string name="nav_speed">测速</string>
     <string name="nav_advice">建议</string>
 
@@ -137,4 +137,16 @@
     <string name="settings_about">关于</string>
     <string name="settings_version">版本 %1$s</string>
     <string name="settings_open_source">开源网络分析工具，功能对标 WiFi Analyzer Pro，并借鉴全球网测的测速与诊断思路。</string>
+    <string name="settings_monet">莫奈取色（Material You）</string>
+    <string name="settings_monet_desc">Android 12+ 跟随壁纸动态配色；关闭后使用品牌色</string>
+    <string name="settings_privacy">隐私说明</string>
+    <string name="settings_privacy_body">本应用不收集、不上传个人数据。测速与诊断仅在本机发起网络请求，结果默认不共享。</string>
+    <string name="tools_title">网络工具</string>
+    <string name="tools_ping">Ping 测试</string>
+    <string name="tools_dns">DNS 解析</string>
+    <string name="tools_http">网页可用性</string>
+    <string name="tools_public_ip">公网 IP</string>
+    <string name="tools_lan">局域网设备</string>
+    <string name="tools_run">执行</string>
+    <string name="nav_tools">工具</string>
 </resources>

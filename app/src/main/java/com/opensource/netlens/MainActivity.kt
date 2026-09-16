@@ -43,10 +43,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.opensource.netlens.ui.MainViewModel
 import com.opensource.netlens.ui.screens.AdvisorScreen
 import com.opensource.netlens.ui.screens.ChannelScreen
-import com.opensource.netlens.ui.screens.DevicesScreen
 import com.opensource.netlens.ui.screens.HomeScreen
 import com.opensource.netlens.ui.screens.SettingsScreen
 import com.opensource.netlens.ui.screens.SpeedTestScreen
+import com.opensource.netlens.ui.screens.ToolsScreen
 import com.opensource.netlens.ui.screens.WifiScanScreen
 import com.opensource.netlens.ui.theme.NetLensTheme
 
@@ -66,7 +66,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val state by vm.state.collectAsStateWithLifecycle()
-            NetLensTheme(themeMode = state.themeMode) {
+            NetLensTheme(
+                themeMode = state.themeMode,
+                dynamicColor = state.dynamicColor
+            ) {
                 NetLensAppRoot(vm = vm, onNeedPermissions = { requestPerms() })
             }
         }
@@ -164,7 +167,7 @@ fun NetLensAppRoot(vm: MainViewModel, onNeedPermissions: () -> Unit) {
                         onOpenSettings = { showSettings = true }
                     )
                     MainTab.CHANNEL -> ChannelScreen(vm = vm)
-                    MainTab.DEVICES -> DevicesScreen(vm = vm)
+                    MainTab.DEVICES -> ToolsScreen(vm = vm)
                     MainTab.SPEED -> SpeedTestScreen(vm = vm)
                     MainTab.ADVICE -> AdvisorScreen(
                         vm = vm,

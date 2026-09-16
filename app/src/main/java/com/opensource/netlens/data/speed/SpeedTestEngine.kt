@@ -142,6 +142,7 @@ class SpeedTestEngine(
 
         body.byteStream().use { input ->
             while (true) {
+                if (sizeBytes > 0 && received >= sizeBytes) break
                 val n = input.read(buffer)
                 if (n <= 0) break
                 received += n

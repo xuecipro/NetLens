@@ -21,6 +21,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -77,6 +78,26 @@ fun SettingsScreen(vm: MainViewModel, onBack: () -> Unit = {}) {
                 }, label = { Text(stringResource(R.string.settings_theme_dark)) })
             }
 
+            Card(shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp)) {
+                Row(
+                    Modifier.padding(14.dp).fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(stringResource(R.string.settings_monet), fontWeight = FontWeight.SemiBold)
+                        Text(
+                            stringResource(R.string.settings_monet_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = state.dynamicColor,
+                        onCheckedChange = { vm.setDynamicColor(it) }
+                    )
+                }
+            }
+
             Text(stringResource(R.string.settings_refresh), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
                 listOf(1000L to R.string.settings_refresh_1s, 3000L to R.string.settings_refresh_3s, 5000L to R.string.settings_refresh_5s, 10000L to R.string.settings_refresh_10s)
@@ -91,7 +112,20 @@ fun SettingsScreen(vm: MainViewModel, onBack: () -> Unit = {}) {
             Text(stringResource(R.string.settings_language), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             LanguageRow(vm)
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(4.dp))
+            Card(shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp)) {
+                Column(Modifier.padding(16.dp)) {
+                    Text(stringResource(R.string.settings_privacy), fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        stringResource(R.string.settings_privacy_body),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(4.dp))
             Card {
                 Column(Modifier.padding(16.dp)) {
                     Text(stringResource(R.string.settings_about), fontWeight = FontWeight.SemiBold)
@@ -108,7 +142,7 @@ fun SettingsScreen(vm: MainViewModel, onBack: () -> Unit = {}) {
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.clickable {
                             runCatching {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/")))
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/xuecipro/NetLens")))
                             }
                         }
                     )

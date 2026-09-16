@@ -46,6 +46,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.opensource.netlens.BuildConfig
 import com.opensource.netlens.R
 import com.opensource.netlens.data.speed.SpeedNode
+import com.opensource.netlens.data.speed.SpeedNodes
 import com.opensource.netlens.data.speed.ThroughputUnits
 import com.opensource.netlens.ui.MainViewModel
 import com.opensource.netlens.ui.components.StatusChip
@@ -143,7 +144,34 @@ fun SpeedTestScreen(vm: MainViewModel) {
             Spacer(Modifier.height(8.dp))
         }
 
-        items(vm.availableSpeedNodes(), key = { it.id }) { n ->
+        item {
+            Text(
+                if (isZh) "国内 / 教育网节点" else "Domestic / CERNET nodes",
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.secondary
+            )
+        }
+        items(SpeedNodes.domestic(), key = { it.id }) { n ->
+            NodeDetailCard(
+                node = n,
+                selected = n.id == state.selectedSpeedNodeId,
+                isZh = isZh,
+                onSelect = { vm.setSpeedNode(n.id) }
+            )
+        }
+
+        item {
+            Text(
+                if (isZh) "国际节点（可测上传）" else "International (upload capable)",
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.tertiary
+            )
+        }
+        items(SpeedNodes.international(), key = { it.id }) { n ->
             NodeDetailCard(
                 node = n,
                 selected = n.id == state.selectedSpeedNodeId,
