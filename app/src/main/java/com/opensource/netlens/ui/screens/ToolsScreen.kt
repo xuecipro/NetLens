@@ -2,6 +2,7 @@ package com.opensource.netlens.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -279,7 +280,7 @@ private fun ToolCard(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
     subtitle: String,
-    content: @Composable Column.() -> Unit
+    content: @Composable ColumnScope.() -> Unit
 ) {
     Card(shape = RoundedCornerShape(16.dp)) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
