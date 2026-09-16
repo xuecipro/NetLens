@@ -117,12 +117,12 @@ fun ChannelScreen(vm: MainViewModel) {
                 )
             }
         }
+        }
 
         SnackbarHost(
             hostState = snackbar,
             modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp)
         )
-        }
     }
 }
 
