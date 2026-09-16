@@ -168,4 +168,41 @@ class NetworkActionExecutor(private val context: Context) {
     fun toast(message: String) {
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
     }
+
+    /** Suggest joining a specific scanned BSSID (same or any SSID). */
+    fun connectToNetwork(network: com.opensource.netlens.data.model.WifiNetwork): ActionResult {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            return ActionResult.Navigation(Intent(Settings.ACTION_WIFI_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
+        return try {
+            val builder = WifiNetworkSuggestion.Builder().setSsid(network.ssid)
+            runCatching { builder.setBssid(MacAddress.fromString(network.bssid)) }
+            val suggestion = builder.build()
+            runCatching { wifiManager.removeNetworkSuggestions(listOf(suggestion)) }
+            val status = wifiManager.addNetworkSuggestions(listOf(suggestion))
+            if (status == WifiManager.STATUS_NETWORK_SUGGESTIONS_SUCCESS) {
+                ActionResult.Success(
+                    "已请求连接 ${network.ssid}（${network.band.label} / CH${network.channel}）。若系统弹出确认请点允许。",
+                    "Requested join ${network.ssid} (${network.band.label} / CH${network.channel}). Accept if prompted."
+                )
+            } else {
+                ActionResult.Navigation(Intent(Settings.ACTION_WIFI_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            }
+        } catch (e: Exception) {
+            ActionResult.Navigation(Intent(Settings.ACTION_WIFI_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
+    }
+
+    /** Copy + open router admin for switching the AP channel. */
+    fun switchChannel(channel: Int, ssid: String?, gateway: String?): ActionResult {
+        val guide = copyChannelGuide(channel.toString(), ssid)
+        val admin = openRouterAdmin(gateway)
+        return if (admin is ActionResult.Navigation) {
+            ActionResult.Navigation(admin.intent).also {
+                toast("已复制步骤，正在打开路由器后台")
+            }
+        } else {
+            guide
+        }
+    }
 }

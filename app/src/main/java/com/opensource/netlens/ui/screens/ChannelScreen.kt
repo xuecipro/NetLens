@@ -11,18 +11,25 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.width
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -47,8 +54,18 @@ fun ChannelScreen(vm: MainViewModel) {
     var band by remember { mutableStateOf(Band.BAND_24) }
     val ratings = remember(state.networks, band) { vm.channelRatings(band) }
     val inBand = state.networks.filter { it.band == band && it.channel > 0 }
+    val snackbar = remember { SnackbarHostState() }
 
-    Column(Modifier.fillMaxSize()) {
+    LaunchedEffect(state.actionMessage) {
+        val msg = state.actionMessage
+        if (msg != null) {
+            snackbar.showSnackbar(msg)
+            vm.clearActionMessage()
+        }
+    }
+
+    Box(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize()) {
         TopAppBar(
             title = {
                 Column {
@@ -93,8 +110,18 @@ fun ChannelScreen(vm: MainViewModel) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(ratings.take(8)) { r ->
-                ChannelRatingRow(r, isCurrent = state.connection?.channel == r.channel && state.connection?.band == band)
+                ChannelRatingRow(
+                    r = r,
+                    isCurrent = state.connection?.channel == r.channel && state.connection?.band == band,
+                    onSwitchChannel = { vm.switchApChannel(r.channel) }
+                )
             }
+        }
+
+        SnackbarHost(
+            hostState = snackbar,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp)
+        )
         }
     }
 }
@@ -158,15 +185,20 @@ fun ChannelGraph(band: Band, networks: List<WifiNetwork>, ratings: List<ChannelR
 }
 
 @Composable
-fun ChannelRatingRow(r: ChannelRating, isCurrent: Boolean) {
+fun ChannelRatingRow(
+    r: ChannelRating,
+    isCurrent: Boolean,
+    onSwitchChannel: (() -> Unit)? = null
+) {
     Card {
         Row(
             Modifier.padding(12.dp).fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
         ) {
-            Column {
+            Column(Modifier.weight(1f)) {
                 Text(
-                    "CH ${r.channel}" + if (isCurrent) " ●" else "",
+                    "CH ${r.channel}" + if (isCurrent) " ● 当前" else "",
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
@@ -186,6 +218,12 @@ fun ChannelRatingRow(r: ChannelRating, isCurrent: Boolean) {
                     }
                 )
                 Text(stringResource(R.string.channel_score), style = MaterialTheme.typography.labelSmall)
+            }
+            if (!isCurrent && onSwitchChannel != null) {
+                Spacer(Modifier.width(8.dp))
+                Button(onClick = onSwitchChannel, shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp)) {
+                    Text("切换")
+                }
             }
         }
     }

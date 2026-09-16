@@ -122,11 +122,13 @@ class SpeedTestEngine(
      */
     suspend fun download(
         sizeBytes: Long = 25L * 1024 * 1024,
+        urlOverride: String? = null,
         onProgress: (Progress) -> Unit = {}
     ): Double = withContext(Dispatchers.IO) {
-        val url = if (downloadUrl.contains("__down")) {
-            downloadUrl + if ("?" in downloadUrl) "&" else "?" + "bytes=$sizeBytes"
-        } else downloadUrl
+        val base = urlOverride?.takeIf { it.isNotBlank() } ?: downloadUrl
+        val url = if (base.contains("__down") || "?" !in base && sizeBytes > 0 && base.contains("speed.cloudflare.com")) {
+            base + (if ("?" in base) "&" else "?") + "bytes=$sizeBytes"
+        } else base
 
         val request = Request.Builder().url(url).get().build()
         val response = client.newCall(request).execute()
@@ -163,12 +165,14 @@ class SpeedTestEngine(
      */
     suspend fun upload(
         sizeBytes: Long = 8L * 1024 * 1024,
+        urlOverride: String? = null,
         onProgress: (Progress) -> Unit = {}
     ): Double = withContext(Dispatchers.IO) {
+        val target = urlOverride?.takeIf { it.isNotBlank() } ?: uploadUrl
         val payload = ByteArray(sizeBytes.toInt().coerceAtMost(16 * 1024 * 1024))
         java.util.Random(42).nextBytes(payload)
         val body = payload.toRequestBody("application/octet-stream".toMediaType())
-        val request = Request.Builder().url(uploadUrl).post(body).build()
+        val request = Request.Builder().url(target).post(body).build()
         onProgress(Progress(Phase.UPLOAD, 0))
         val start = System.nanoTime()
         client.newCall(request).execute().use { response ->

@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material.icons.rounded.WifiOff
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -25,10 +26,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,71 +51,92 @@ import com.opensource.netlens.data.model.signalColor
 import com.opensource.netlens.ui.MainViewModel
 import com.opensource.netlens.ui.components.AnimatedSignalBar
 import com.opensource.netlens.ui.components.StatusChip
+import androidx.compose.foundation.layout.Box
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WifiScanScreen(vm: MainViewModel) {
+fun WifiScanScreen(vm: MainViewModel, onOpenSettings: () -> Unit = {}) {
     val state by vm.state.collectAsStateWithLifecycle()
     var bandFilter by remember { mutableStateOf<Band?>(null) }
+    val snackbar = remember { SnackbarHostState() }
+
+    LaunchedEffect(state.actionMessage) {
+        val msg = state.actionMessage
+        if (msg != null) {
+            snackbar.showSnackbar(msg)
+            vm.clearActionMessage()
+        }
+    }
 
     val networks = state.networks.filter { bandFilter == null || it.band == bandFilter }
 
-    Column(Modifier.fillMaxSize()) {
-        TopAppBar(
-            title = {
-                Column {
-                    Text(stringResource(R.string.nav_wifi), fontWeight = FontWeight.ExtraBold)
-                    Text(
-                        stringResource(R.string.wifi_networks_found, networks.size),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+    Box(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize()) {
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(stringResource(R.string.nav_wifi), fontWeight = FontWeight.ExtraBold)
+                        Text(
+                            stringResource(R.string.wifi_networks_found, networks.size),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { vm.refreshWifi() }) {
+                        Icon(Icons.Rounded.Refresh, contentDescription = null)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+            )
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(horizontal = 16.dp)
+            ) {
+                FilterChip(selected = bandFilter == null, onClick = { bandFilter = null }, label = {
+                    Text(stringResource(R.string.wifi_filter_all))
+                })
+                FilterChip(selected = bandFilter == Band.BAND_24, onClick = { bandFilter = Band.BAND_24 }, label = {
+                    Text(stringResource(R.string.wifi_band_2g))
+                })
+                FilterChip(selected = bandFilter == Band.BAND_5, onClick = { bandFilter = Band.BAND_5 }, label = {
+                    Text(stringResource(R.string.wifi_band_5g))
+                })
+                FilterChip(selected = bandFilter == Band.BAND_6, onClick = { bandFilter = Band.BAND_6 }, label = {
+                    Text(stringResource(R.string.wifi_band_6g))
+                })
+            }
+            Spacer(Modifier.height(8.dp))
+
+            if (state.isScanningWifi) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
+
+            LazyColumn(
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(networks, key = { it.bssid + it.ssid }) { net ->
+                    PrettyWifiCard(
+                        net = net,
+                        isCurrent = net.isCurrent,
+                        onConnect = { vm.connectToNetwork(net) }
                     )
                 }
-            },
-            actions = {
-                IconButton(onClick = { vm.refreshWifi() }) {
-                    Icon(Icons.Rounded.Refresh, contentDescription = null)
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
-        )
-
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.padding(horizontal = 16.dp)
-        ) {
-            FilterChip(selected = bandFilter == null, onClick = { bandFilter = null }, label = {
-                Text(stringResource(R.string.wifi_filter_all))
-            })
-            FilterChip(selected = bandFilter == Band.BAND_24, onClick = { bandFilter = Band.BAND_24 }, label = {
-                Text(stringResource(R.string.wifi_band_2g))
-            })
-            FilterChip(selected = bandFilter == Band.BAND_5, onClick = { bandFilter = Band.BAND_5 }, label = {
-                Text(stringResource(R.string.wifi_band_5g))
-            })
-            FilterChip(selected = bandFilter == Band.BAND_6, onClick = { bandFilter = Band.BAND_6 }, label = {
-                Text(stringResource(R.string.wifi_band_6g))
-            })
-        }
-        Spacer(Modifier.height(8.dp))
-
-        if (state.isScanningWifi) {
-            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-        }
-
-        LazyColumn(
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            items(networks, key = { it.bssid + it.ssid }) { net ->
-                PrettyWifiCard(net, isCurrent = net.isCurrent)
             }
         }
+
+        SnackbarHost(
+            hostState = snackbar,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp)
+        )
     }
 }
 
 @Composable
-fun PrettyWifiCard(net: WifiNetwork, isCurrent: Boolean) {
+fun PrettyWifiCard(net: WifiNetwork, isCurrent: Boolean, onConnect: () -> Unit) {
     val color = signalColor(net.signalLevel)
     Card(
         shape = RoundedCornerShape(18.dp),
@@ -147,8 +173,10 @@ fun PrettyWifiCard(net: WifiNetwork, isCurrent: Boolean) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 StatusChip(net.band.label, MaterialTheme.colorScheme.secondary)
-                Text("CH ${net.channel}${net.channelWidthMhz?.let { " · ${it}MHz" } ?: ""}",
-                    style = MaterialTheme.typography.labelMedium)
+                Text(
+                    "CH ${net.channel}${net.channelWidthMhz?.let { " · ${it}MHz" } ?: ""}",
+                    style = MaterialTheme.typography.labelMedium
+                )
                 StatusChip(net.security.name, color)
             }
             Text(
@@ -156,6 +184,25 @@ fun PrettyWifiCard(net: WifiNetwork, isCurrent: Boolean) {
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            if (!isCurrent && net.ssid.isNotBlank()) {
+                Button(
+                    onClick = onConnect,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(if (net.band == Band.BAND_24) "连接此网络" else "连接 ${net.band.label}")
+                }
+            } else if (isCurrent && net.band == Band.BAND_24) {
+                val sibling5 = // show hint only; connect uses same SSID suggestion from advisor
+                    "可在「建议」中一键切换 5 GHz"
+                OutlinedButton(
+                    onClick = onConnect,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(sibling5)
+                }
+            }
         }
     }
 }

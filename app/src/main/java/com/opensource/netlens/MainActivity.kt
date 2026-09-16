@@ -9,15 +9,21 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.material.icons.filled.NetworkCheck
-import androidx.compose.material.icons.filled.Router
-import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material.icons.rounded.Dashboard
+import androidx.compose.material.icons.rounded.Lightbulb
+import androidx.compose.material.icons.rounded.NetworkCheck
+import androidx.compose.material.icons.rounded.Router
+import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -25,15 +31,15 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
 import com.opensource.netlens.ui.MainViewModel
 import com.opensource.netlens.ui.screens.AdvisorScreen
 import com.opensource.netlens.ui.screens.ChannelScreen
@@ -88,70 +94,85 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private data class Tab(val icon: ImageVector, val labelRes: Int, val route: String)
+private data class TabSpec(val icon: ImageVector, val labelRes: Int)
+
+private enum class MainTab {
+    HOME, WIFI, CHANNEL, DEVICES, SPEED, ADVICE;
+
+    companion object {
+        val specs = mapOf(
+            HOME to TabSpec(Icons.Rounded.Dashboard, R.string.nav_home),
+            WIFI to TabSpec(Icons.Rounded.Wifi, R.string.nav_wifi),
+            CHANNEL to TabSpec(Icons.Rounded.Router, R.string.nav_channel),
+            DEVICES to TabSpec(Icons.Rounded.NetworkCheck, R.string.nav_devices),
+            SPEED to TabSpec(Icons.Rounded.Speed, R.string.nav_speed),
+            ADVICE to TabSpec(Icons.Rounded.Lightbulb, R.string.nav_advice)
+        )
+    }
+}
 
 @Composable
 fun NetLensAppRoot(vm: MainViewModel, onNeedPermissions: () -> Unit) {
-    val navController = rememberNavController()
-    val tabs = listOf(
-        Tab(Icons.Default.Home, R.string.nav_home, "home"),
-        Tab(Icons.Default.Wifi, R.string.nav_wifi, "wifi"),
-        Tab(Icons.Default.Router, R.string.nav_channel, "channel"),
-        Tab(Icons.Default.NetworkCheck, R.string.nav_devices, "devices"),
-        Tab(Icons.Default.Speed, R.string.nav_speed, "speed"),
-        Tab(Icons.Default.Lightbulb, R.string.nav_advice, "advice")
-    )
-    val backStack by navController.currentBackStackEntryAsState()
-    val currentRoute = backStack?.destination?.route
+    var tab by rememberSaveable { mutableIntStateOf(MainTab.HOME.ordinal) }
+    var showSettings by rememberSaveable { mutableStateOf(false) }
+
+    fun go(t: MainTab) {
+        showSettings = false
+        tab = t.ordinal
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
             NavigationBar {
-                tabs.forEach { tab ->
+                MainTab.entries.forEach { t ->
+                    val spec = MainTab.specs[t]!!
                     NavigationBarItem(
-                        selected = currentRoute == tab.route,
-                        onClick = {
-                            navController.navigate(tab.route) {
-                                popUpTo("home") { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
-                        icon = { Icon(tab.icon, contentDescription = null) },
-                        label = { Text(stringResource(tab.labelRes)) }
+                        selected = !showSettings && tab == t.ordinal,
+                        onClick = { go(t) },
+                        icon = { Icon(spec.icon, contentDescription = null) },
+                        label = { Text(stringResource(spec.labelRes)) }
                     )
                 }
             }
         }
     ) { padding ->
-        NavHost(
-            navController = navController,
-            startDestination = "home",
-            modifier = Modifier.padding(padding)
-        ) {
-            composable("home") {
-                HomeScreen(
-                    vm = vm,
-                    onOpenSettings = { navController.navigate("settings") },
-                    onOpenSpeed = { navController.navigate("speed") },
-                    onOpenDevices = { navController.navigate("devices") },
-                    onOpenAdvice = { navController.navigate("advice") },
-                    onNeedPermissions = onNeedPermissions
-                )
+        val modifier = Modifier.padding(padding)
+        if (showSettings) {
+            SettingsScreen(vm = vm, onBack = { showSettings = false })
+        } else {
+            AnimatedContent(
+                targetState = tab,
+                transitionSpec = {
+                    (slideInHorizontally { it / 8 } + fadeIn()) togetherWith
+                        (slideOutHorizontally { -it / 8 } + fadeOut())
+                },
+                label = "tab",
+                modifier = modifier
+            ) { selected ->
+                when (MainTab.entries[selected]) {
+                    MainTab.HOME -> HomeScreen(
+                        vm = vm,
+                        onOpenSettings = { showSettings = true },
+                        onOpenSpeed = { go(MainTab.SPEED) },
+                        onOpenDevices = { go(MainTab.DEVICES) },
+                        onOpenAdvice = { go(MainTab.ADVICE) },
+                        onNeedPermissions = onNeedPermissions
+                    )
+                    MainTab.WIFI -> WifiScanScreen(
+                        vm = vm,
+                        onOpenSettings = { showSettings = true }
+                    )
+                    MainTab.CHANNEL -> ChannelScreen(vm = vm)
+                    MainTab.DEVICES -> DevicesScreen(vm = vm)
+                    MainTab.SPEED -> SpeedTestScreen(vm = vm)
+                    MainTab.ADVICE -> AdvisorScreen(
+                        vm = vm,
+                        onNavigateToSpeed = { go(MainTab.SPEED) },
+                        onNavigateToDevices = { go(MainTab.DEVICES) }
+                    )
+                }
             }
-            composable("wifi") { WifiScanScreen(vm = vm) }
-            composable("channel") { ChannelScreen(vm = vm) }
-            composable("devices") { DevicesScreen(vm = vm) }
-            composable("speed") { SpeedTestScreen(vm = vm) }
-            composable("advice") {
-                AdvisorScreen(
-                    vm = vm,
-                    onNavigateToSpeed = { navController.navigate("speed") },
-                    onNavigateToDevices = { navController.navigate("devices") }
-                )
-            }
-            composable("settings") { SettingsScreen(vm = vm) }
         }
     }
 }

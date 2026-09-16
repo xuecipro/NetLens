@@ -16,6 +16,8 @@ import com.opensource.netlens.data.model.PingStats
 import com.opensource.netlens.data.model.SpeedResult
 import com.opensource.netlens.data.model.WifiNetwork
 import com.opensource.netlens.data.speed.PingEngine
+import com.opensource.netlens.data.speed.SpeedNode
+import com.opensource.netlens.data.speed.SpeedNodes
 import com.opensource.netlens.data.speed.SpeedTestEngine
 import com.opensource.netlens.data.wifi.WifiRepository
 import kotlinx.coroutines.Job
@@ -43,7 +45,8 @@ data class UiState(
     val selectedBand: Band? = null,
     val scanIntervalMs: Long = 3000L,
     val themeMode: String = "system",
-    val actionMessage: String? = null
+    val actionMessage: String? = null,
+    val selectedSpeedNodeId: String = "cf_auto"
 )
 
 class MainViewModel(app: Application) : AndroidViewModel(app) {
@@ -123,8 +126,58 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    fun setSpeedNode(id: String) {
+        _state.update { it.copy(selectedSpeedNodeId = id) }
+    }
+
+    fun selectedSpeedNode(): SpeedNode = SpeedNodes.byId(_state.value.selectedSpeedNodeId)
+
+    fun availableSpeedNodes(): List<SpeedNode> = SpeedNodes.ALL
+
+    fun connectToNetwork(network: WifiNetwork) {
+        val result = actionExecutor.connectToNetwork(network)
+        handleActionResult(result)
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(1500)
+            refreshWifi()
+        }
+    }
+
+    fun switchApChannel(channel: Int) {
+        val conn = _state.value.connection
+        val result = actionExecutor.switchChannel(channel, conn?.ssid, conn?.gateway)
+        handleActionResult(result)
+    }
+
+    private fun handleActionResult(result: NetworkActionExecutor.ActionResult) {
+        when (result) {
+            is NetworkActionExecutor.ActionResult.Success -> {
+                val msg = if (java.util.Locale.getDefault().language.startsWith("zh"))
+                    result.messageZh else result.messageEn
+                _state.update { it.copy(actionMessage = msg) }
+                actionExecutor.toast(msg)
+            }
+            is NetworkActionExecutor.ActionResult.Navigation -> {
+                runCatching {
+                    getApplication<Application>().startActivity(result.intent)
+                }
+                _state.update { it.copy(actionMessage = "已打开系统设置 / Opened system settings") }
+            }
+            is NetworkActionExecutor.ActionResult.Error -> {
+                val msg = if (java.util.Locale.getDefault().language.startsWith("zh"))
+                    result.messageZh else result.messageEn
+                _state.update { it.copy(actionMessage = msg) }
+                actionExecutor.toast(msg)
+            }
+            is NetworkActionExecutor.ActionResult.NeedsPermission -> {
+                _state.update { it.copy(actionMessage = "需要相关权限 / Permission required") }
+            }
+        }
+    }
+
     fun runSpeedTest() {
         if (_state.value.isTestingSpeed) return
+        val node = selectedSpeedNode()
         viewModelScope.launch {
             _state.update {
                 it.copy(
@@ -135,23 +188,35 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 )
             }
             try {
-                val ping = pingEngine.measure(host = "1.1.1.1", count = 10)
+                val pingHost = node.pingHost.ifBlank {
+                    _state.value.connection?.gateway?.ifBlank { "1.1.1.1" } ?: "1.1.1.1"
+                }
+                val ping = pingEngine.measure(host = pingHost, count = 10)
                 _state.update {
                     it.copy(ping = ping, speedPhase = "download", speedProgress = 5)
                 }
 
-                val download = speedEngine.download(
-                    sizeBytes = 20L * 1024 * 1024
-                ) { p ->
-                    _state.update {
-                        it.copy(speedProgress = 5 + (p.percent * 45) / 100)
+                val download = if (node.downloadUrl.isBlank()) {
+                    0.0
+                } else {
+                    speedEngine.download(
+                        sizeBytes = node.downloadSizeBytes,
+                        urlOverride = node.downloadUrl
+                    ) { p ->
+                        _state.update {
+                            it.copy(speedProgress = 5 + (p.percent * 45) / 100)
+                        }
                     }
                 }
 
                 _state.update { it.copy(speedPhase = "upload", speedProgress = 55) }
 
                 val upload = try {
-                    speedEngine.upload(sizeBytes = 6L * 1024 * 1024) { p ->
+                    if (node.uploadUrl.isNullOrBlank()) 0.0
+                    else speedEngine.upload(
+                        sizeBytes = node.uploadSizeBytes,
+                        urlOverride = node.uploadUrl
+                    ) { p ->
                         _state.update {
                             it.copy(speedProgress = 55 + (p.percent * 40) / 100)
                         }
@@ -168,16 +233,23 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     lossPercent = ping.lossPercent
                 )
 
+                val label = if (java.util.Locale.getDefault().language.startsWith("zh"))
+                    node.nameZh else node.nameEn
+
                 val result = SpeedResult(
                     downloadMbps = download,
                     uploadMbps = upload,
                     latencyMs = ping.avgMs,
                     jitterMs = ping.jitterMs,
                     packetLossPercent = ping.lossPercent,
-                    serverLabel = "Cloudflare",
+                    serverLabel = label,
                     timestamp = System.currentTimeMillis(),
-                    score = score,
-                    grade = grade
+                    score = if (node.downloadUrl.isBlank()) {
+                        SpeedTestEngine.scoreOf(0.0, 0.0, ping.avgMs, ping.jitterMs, ping.lossPercent).first
+                    } else score,
+                    grade = if (node.downloadUrl.isBlank()) {
+                        SpeedTestEngine.scoreOf(0.0, 0.0, ping.avgMs, ping.jitterMs, ping.lossPercent).second
+                    } else grade
                 )
 
                 _state.update {

@@ -1,6 +1,7 @@
 package com.opensource.netlens.ui.screens
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +18,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -68,8 +70,45 @@ fun SpeedTestScreen(vm: MainViewModel) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(stringResource(R.string.speed_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("${stringResource(R.string.speed_server)}: ${stringResource(R.string.speed_server_auto)}", style = MaterialTheme.typography.bodySmall)
+            val selectedNode = vm.selectedSpeedNode()
+            val isZh = java.util.Locale.getDefault().language.startsWith("zh")
+
+            Card(shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        stringResource(R.string.speed_server),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        buildString {
+                            append(if (isZh) selectedNode.nameZh else selectedNode.nameEn)
+                            append(" · ")
+                            append(if (isZh) selectedNode.locationZh else selectedNode.locationEn)
+                            if (selectedNode.pingHost.isNotBlank()) {
+                                append(" · ping ")
+                                append(selectedNode.pingHost)
+                            }
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                    ) {
+                        vm.availableSpeedNodes().forEach { node ->
+                            FilterChip(
+                                selected = node.id == state.selectedSpeedNodeId,
+                                onClick = { vm.setSpeedNode(node.id) },
+                                label = { Text(if (isZh) node.nameZh else node.nameEn) }
+                            )
+                        }
+                    }
+                }
+            }
 
             Card {
                 Column(
@@ -100,6 +139,11 @@ fun SpeedTestScreen(vm: MainViewModel) {
 
             if (state.lastSpeed != null) {
                 val s = state.lastSpeed!!
+                Text(
+                    "${stringResource(R.string.speed_server)}: ${s.serverLabel}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     ResultTile(
                         Modifier.weight(1f),
